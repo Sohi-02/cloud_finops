@@ -1,0 +1,10 @@
+{
+  "dry_run": true,
+  "finished_at_utc": "2026-08-29T12:44:41.717384+00:00",
+  "job_id": "bc2cf1ba-f023-450d-ad23-6fb788ba1289",
+  "job_status": "skipped",
+  "monitoring_decision": "wait_for_data",
+  "reason": "Monitoring did not recommend model retraining.",
+  "started_at_utc": "2026-08-29T12:44:41.717384+00:00",
+  "trigger_retraining": false
+}

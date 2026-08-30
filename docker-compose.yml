@@ -1,0 +1,74 @@
+services:
+
+  # ----------------------------------------------------------
+  # MongoDB prediction-storage service
+  # ----------------------------------------------------------
+
+  mongodb:
+    image: mongo:8.0
+    container_name: finops-mongodb
+
+    restart: unless-stopped
+
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
+
+    ports:
+      - "127.0.0.1:27017:27017"
+
+    volumes:
+      - finops_mongodb_data:/data/db
+
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--eval",
+          "db.adminCommand('ping').ok"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ----------------------------------------------------------
+  # FinOps FastAPI service
+  # ----------------------------------------------------------
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    image: finops-forecast-api:1.4.0
+    container_name: finops-api
+
+    restart: unless-stopped
+
+    environment:
+      FINOPS_MODEL_PATH: /app/models/champion
+
+      MONGODB_URI: >-
+        mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/${MONGODB_DATABASE}?authSource=admin
+
+      MONGODB_DATABASE: ${MONGODB_DATABASE}
+
+    ports:
+      - "8000:8000"
+
+    depends_on:
+      mongodb:
+        condition: service_healthy
+
+
+# ------------------------------------------------------------
+# Persistent database storage
+# ------------------------------------------------------------
+
+volumes:
+  finops_mongodb_data:
+    name: finops_mongodb_data

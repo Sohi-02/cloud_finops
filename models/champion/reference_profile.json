@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0",
+  "created_at_utc": "2026-08-26T13:17:19.059321+00:00",
+  "registered_model": "finops-cloud-cost-forecasting-clean-v1",
+  "model_alias": "champion",
+  "model_version": "1",
+  "minimum_production_samples": 30,
+  "psi_thresholds": {
+    "moderate": 0.1,
+    "significant": 0.25
+  },
+  "features": {
+    "estimated_cost_index": {
+      "dtype": "float64",
+      "training_sample_count": 501,
+      "minimum": 1.3352261327453026,
+      "maximum": 86.27701486373564,
+      "mean": 41.6823755341243,
+      "standard_deviation": 19.663110159308985,
+      "internal_bin_edges": [
+        15.641694946445249,
+        22.57303197602775,
+        26.35724928432866,
+        35.257328336960406,
+        42.53434672097188,
+        50.2117991697086,
+        55.8293075205714,
+        59.71136265246446,
+        67.50219010898498
+      ],
+      "expected_bin_proportions": [
+        0.0998003992015968,
+        0.0998003992015968,
+        0.10179640718562874,
+        0.09780439121756487,
+        0.0998003992015968,
+        0.0998003992015968,
+        0.0998003992015968,
+        0.0998003992015968,
+        0.0998003992015968,
+        0.10179640718562874
+      ]
+    }
+  }
+}

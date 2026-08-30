@@ -1,0 +1,52 @@
+# Local Python environments
+venv/
+.venv/
+venv*/
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Test and tool caches
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Git files
+.git/
+.gitignore
+
+# Large project data not required for API inference
+data/
+notebooks/
+mlruns/
+artifacts/
+outputs/
+archive/
+
+# IDE and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets and local configuration
+.env
+*.env
+
+mlartifacts/
+mlflow.db
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+
+# Keep deployment model artifacts
+!models/
+!models/champion/
+!models/champion/**
+
+tests/

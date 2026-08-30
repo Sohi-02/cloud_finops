@@ -1,0 +1,16 @@
+{
+  "project": "FinOps Cloud Cost Forecasting",
+  "registered_model": "finops-cloud-cost-forecasting-clean-v1",
+  "alias": "champion",
+  "model_version": "1",
+  "source_run_id": "25b920c78baf4274a36b9cea73f39e23",
+  "forecast_horizon": "1_hour",
+  "model_role": "production_champion",
+  "input_schema": {
+    "estimated_cost_index": "float64"
+  },
+  "output": "predicted_next_hour_cost",
+  "production_test_mae": 7.882846,
+  "mlflow_version": "3.15.1",
+  "sklearn_version": "1.6.1"
+}

@@ -1,0 +1,10 @@
+mlflow
+scikit-learn
+pandas
+numpy
+fastapi
+pydantic
+uvicorn[standard]
+httpx
+pytest
+pymongo==4.17.0
