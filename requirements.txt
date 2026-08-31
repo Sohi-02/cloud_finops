@@ -8,3 +8,5 @@ uvicorn[standard]
 httpx
 pytest
 pymongo==4.17.0
+streamlit
+shap

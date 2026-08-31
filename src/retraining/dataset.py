@@ -1,6 +1,4 @@
-# ============================================================
 # PRODUCTION RETRAINING DATASET BUILDER
-# ============================================================
 
 import hashlib
 import math
@@ -240,9 +238,7 @@ def build_retraining_dataset(
 
     accepted_rows = []
 
-    # --------------------------------------------------------
     # Validate individual MongoDB records
-    # --------------------------------------------------------
 
     for record in records:
 
@@ -434,9 +430,7 @@ def build_retraining_dataset(
             )
         })
 
-    # --------------------------------------------------------
     # Create chronologically ordered DataFrame
-    # --------------------------------------------------------
 
     dataset_columns = [
         "prediction_id",
@@ -523,9 +517,7 @@ def build_retraining_dataset(
         )
     )
 
-    # --------------------------------------------------------
     # Return dataset and validation report
-    # --------------------------------------------------------
 
     return {
         "dataset": dataset,

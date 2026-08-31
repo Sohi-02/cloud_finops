@@ -1,6 +1,4 @@
-# ============================================================
 # FINOPS CHALLENGER TRAINING AND SELECTION
-# ============================================================
 
 from typing import Any, Optional
 
@@ -281,9 +279,7 @@ def train_and_select_challenger(
 
     candidate_failures = {}
 
-    # --------------------------------------------------------
     # 1. Train each candidate on training data
-    # --------------------------------------------------------
 
     for model_name, model_template in (
         candidate_models.items()

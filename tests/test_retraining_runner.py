@@ -147,3 +147,29 @@ def test_wait_for_data_creates_skipped_audit(
             + ".json"
         )
     ).exists()
+
+
+def test_fetch_retraining_status_rejects_unknown_decision():
+
+    mock_client = build_mock_client({
+        "trigger_retraining": True,
+        "decision": "invalid_gate"
+    })
+
+    try:
+
+        try:
+            fetch_retraining_status(
+                api_url="http://test-api",
+                client=mock_client
+            )
+        except ValueError as exc:
+            assert "decision" in str(exc).lower()
+        else:
+            raise AssertionError(
+                "Expected ValueError for invalid retraining decision."
+            )
+
+    finally:
+
+        mock_client.close()

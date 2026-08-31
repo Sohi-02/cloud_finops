@@ -160,7 +160,7 @@ src/
 
 tests/
 Dockerfile
-docker-compose.yaml
+docker-compose.yml
 requirements.txt
 ```
 
@@ -243,7 +243,13 @@ Invoke-RestMethod `
 - Automated tests implemented
 - Automatic champion replacement intentionally protected
 
+## Completed extension work
+
+- Billing-history ingestion utilities exist for verified cost history and CSV loading.
+- Anomaly detection now flags high-cost spikes with severity scoring.
+- Explainability is available for learned models and explicitly rejected for the persistence baseline.
+- A Streamlit dashboard has been added as a lightweight front-end for prediction, history, and monitoring views.
+
 ## Planned work
 
-Anomaly detection and explainability remain future extensions. They are
-not claimed as implemented in the current version.
+The remaining project work is operational hardening rather than core model development: production-grade ingestion automation, provider integration, and controlled retraining orchestration around the existing champion/challenger contract.

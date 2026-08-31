@@ -1,6 +1,4 @@
-# ============================================================
 # FINOPS STANDALONE RETRAINING JOB
-# ============================================================
 
 import hashlib
 
@@ -144,9 +142,7 @@ def run_retraining_job(
         )
     )
 
-    # --------------------------------------------------------
     # 1. Stop safely when monitoring does not trigger
-    # --------------------------------------------------------
 
     if not trigger_retraining:
 
@@ -173,9 +169,7 @@ def run_retraining_job(
             }
         }
 
-    # --------------------------------------------------------
     # 2. Validate the full hourly data source
-    # --------------------------------------------------------
 
     data_path = Path(
         hourly_data_path
@@ -217,9 +211,7 @@ def run_retraining_job(
         len(hourly_data)
     )
 
-    # --------------------------------------------------------
     # 3. Require enough full-feature hourly records
-    # --------------------------------------------------------
 
     if (
         raw_hourly_rows
@@ -262,9 +254,7 @@ def run_retraining_job(
             "retraining is triggered."
         )
 
-    # --------------------------------------------------------
     # 4. Recreate the exact notebook feature pipeline
-    # --------------------------------------------------------
 
     modeling_data = (
         build_forecasting_features(
@@ -284,9 +274,7 @@ def run_retraining_job(
         )
     )
 
-    # --------------------------------------------------------
     # 5. Train and evaluate challengers
-    # --------------------------------------------------------
 
     challenger_result = (
         train_and_select_challenger(
@@ -344,9 +332,7 @@ def run_retraining_job(
 
         candidate_model = None
 
-    # --------------------------------------------------------
     # 6. Return model object and serializable report
-    # --------------------------------------------------------
 
     return {
         "candidate_model": 

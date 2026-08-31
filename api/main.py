@@ -16,7 +16,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
 
 from api.telemetry import (
@@ -34,6 +34,9 @@ from src.monitoring.performance import (
 )
 from src.retraining.contract import (
     evaluate_model_contract
+)
+from src.retraining.inference import (
+    build_latest_inference_features
 )
 from src.retraining.pipeline import (
     FINOPS_FEATURE_COLUMNS
@@ -195,6 +198,65 @@ class ActualCostResponse(BaseModel):
     absolute_error: float
 
     status: Literal["completed"]
+
+
+class BatchPredictionItem(BaseModel):
+
+    current_hour_cost: float
+
+    predicted_next_hour_cost: float
+
+    model_alias: str
+
+    model_version: str
+
+    data_quality_passed: bool
+
+
+class BatchPredictionResponse(BaseModel):
+
+    count: int
+
+    results: list[BatchPredictionItem]
+
+
+class RawHourlyInput(BaseModel):
+
+    time_bucket: datetime
+
+    cpu_mean: float = Field(..., ge=0)
+
+    memory_mean_gb: float = Field(..., ge=0)
+
+    disk_activity_kbps: float = Field(..., ge=0)
+
+    network_activity_kbps: float = Field(..., ge=0)
+
+    active_vms: float = Field(..., ge=0)
+
+    resource_cost_index: float = Field(..., ge=0)
+
+    estimated_cost_index: float = Field(..., ge=0)
+
+
+class RawHourlyPredictionRequest(BaseModel):
+
+    previous_hour: RawHourlyInput
+
+    current_hour: RawHourlyInput
+
+
+class RawHourlyPredictionResponse(BaseModel):
+
+    predicted_next_hour_cost: float
+
+    forecast_horizon: Literal["1_hour"]
+
+    feature_count: Literal[22]
+
+    model_alias: str
+
+    model_version: str
 
 
 class HealthResponse(BaseModel):
@@ -1234,10 +1296,177 @@ def record_actual(
         status="completed"
     )
 
-
-# ============================================================
 # ONE-FEATURE CHAMPION PREDICTION ENDPOINT
-# ============================================================
+
+
+@app.post(
+    "/predict/csv",
+    response_model=BatchPredictionResponse
+)
+async def predict_csv(
+    file: UploadFile,
+    request: Request
+):
+    """Predict a batch of next-hour costs from a CSV file."""
+    if not file.filename:
+        raise HTTPException(
+            status_code=400,
+            detail="A CSV file is required."
+        )
+
+    if not file.filename.lower().endswith(".csv"):
+        raise HTTPException(
+            status_code=400,
+            detail="Only CSV uploads are supported."
+        )
+
+    try:
+        content = await file.read()
+        csv_text = content.decode("utf-8")
+        batch_frame = pd.read_csv(
+            pd.io.common.StringIO(csv_text)
+        )
+    except Exception as error:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unable to parse CSV file: {error}"
+        ) from error
+
+    required_column = "estimated_cost_index"
+    if required_column not in batch_frame.columns:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "CSV must contain the column "
+                f"'{required_column}'."
+            )
+        )
+
+    model = request.app.state.model
+    manifest = request.app.state.manifest
+
+    results: list[BatchPredictionItem] = []
+    for raw_value in batch_frame[required_column].tolist():
+        try:
+            numeric_value = float(raw_value)
+        except (TypeError, ValueError) as error:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "All values in the CSV must be numeric. "
+                    f"Invalid value found: {raw_value!r}"
+                )
+            ) from error
+
+        if numeric_value < 0:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    "All values in the CSV must be non-negative. "
+                    f"Invalid value found: {numeric_value}"
+                )
+            )
+
+        input_features = {"estimated_cost_index": numeric_value}
+        required_features = list(manifest["input_schema"].keys())
+
+        data_quality_report = validate_input_features(
+            input_features=input_features,
+            required_features=required_features,
+            feature_ranges={
+                "estimated_cost_index": {
+                    "minimum": 0.0,
+                    "maximum": None
+                }
+            }
+        )
+
+        if not data_quality_report["passed"]:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": (
+                        "Production input failed data-quality validation."
+                    ),
+                    "errors": data_quality_report["errors"],
+                }
+            )
+
+        model_input = pd.DataFrame({
+            "estimated_cost_index": pd.Series([numeric_value], dtype="float64")
+        })
+
+        model_output = np.asarray(
+            model.predict(model_input)
+        ).reshape(-1)
+
+        predicted_cost = float(model_output[0])
+        if not np.isfinite(predicted_cost) or predicted_cost < 0:
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Model returned an invalid prediction for a input value."
+                )
+            )
+
+        results.append(
+            BatchPredictionItem(
+                current_hour_cost=numeric_value,
+                predicted_next_hour_cost=predicted_cost,
+                model_alias=manifest["alias"],
+                model_version=str(manifest["model_version"]),
+                data_quality_passed=data_quality_report["passed"],
+            )
+        )
+
+    return BatchPredictionResponse(
+        count=len(results),
+        results=results,
+    )
+
+
+@app.post(
+    "/predict/raw-hourly",
+    response_model=RawHourlyPredictionResponse
+)
+def predict_raw_hourly(
+    prediction_request: RawHourlyPredictionRequest,
+    request: Request
+):
+    """Predict using two consecutive hourly telemetry rows."""
+    model = request.app.state.model
+    manifest = request.app.state.manifest
+
+    try:
+        feature_frame = build_latest_inference_features(
+            previous_hour=prediction_request.previous_hour.model_dump(),
+            current_hour=prediction_request.current_hour.model_dump(),
+        )
+
+        model_output = np.asarray(
+            model.predict(feature_frame)
+        ).reshape(-1)
+
+        if model_output.size != 1:
+            raise ValueError("Model returned an unexpected number of predictions.")
+
+        predicted_cost = float(model_output[0])
+        if not np.isfinite(predicted_cost) or predicted_cost < 0:
+            raise ValueError("Model returned an invalid prediction.")
+
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=f"Prediction failed: {error}") from error
+
+    return RawHourlyPredictionResponse(
+        predicted_next_hour_cost=predicted_cost,
+        forecast_horizon="1_hour",
+        feature_count=22,
+        model_alias=manifest["alias"],
+        model_version=str(manifest["model_version"]),
+    )
+
 
 @app.post(
     "/predict",
@@ -1375,9 +1604,8 @@ def predict(
         )
     )
 
-    # --------------------------------------------------------
+   
     # Store prediction
-    # --------------------------------------------------------
 
     prediction_logged = False
 
@@ -1425,9 +1653,8 @@ def predict(
                 "MongoDB logging failed."
             )
 
-    # --------------------------------------------------------
+   
     # Response
-    # --------------------------------------------------------
 
     return PredictionResponse(
         prediction_id=prediction_id,

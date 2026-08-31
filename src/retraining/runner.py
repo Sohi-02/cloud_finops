@@ -38,6 +38,13 @@ DEFAULT_REPORT_DIRECTORY = (
     / "retraining_jobs"
 )
 
+VALID_RETRAINING_DECISIONS = {
+    "wait_for_data",
+    "no_retraining",
+    "monitor_closely",
+    "trigger_retraining"
+}
+
 
 def fetch_retraining_status(
     api_url: str,
@@ -125,6 +132,42 @@ def fetch_retraining_status(
 
         raise ValueError(
             "trigger_retraining must be boolean."
+        )
+
+    decision = status_report["decision"]
+
+    if not isinstance(decision, str):
+
+        raise ValueError(
+            "decision must be a string."
+        )
+
+    if decision not in VALID_RETRAINING_DECISIONS:
+
+        raise ValueError(
+            "decision must be one of: "
+            f"{sorted(VALID_RETRAINING_DECISIONS)}. "
+            f"Received: {decision!r}"
+        )
+
+    if (
+        status_report["trigger_retraining"]
+        and decision != "trigger_retraining"
+    ):
+
+        raise ValueError(
+            "A trigger_retraining response must use "
+            "the decision 'trigger_retraining'."
+        )
+
+    if (
+        not status_report["trigger_retraining"]
+        and decision == "trigger_retraining"
+    ):
+
+        raise ValueError(
+            "A non-triggering response cannot use "
+            "the decision 'trigger_retraining'."
         )
 
     return status_report

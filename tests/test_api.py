@@ -446,3 +446,38 @@ def test_retraining_status_waits_for_data(
     assert len(
         body["evaluated_at_utc"]
     ) > 0
+
+
+# ============================================================
+# CSV BATCH PREDICTION
+# ============================================================
+
+
+def test_csv_batch_prediction(client):
+
+    csv_payload = (
+        "estimated_cost_index\n"
+        "10\n"
+        "20.5\n"
+        "0\n"
+    )
+
+    response = client.post(
+        "/predict/csv",
+        files={
+            "file": (
+                "batch.csv",
+                csv_payload,
+                "text/csv"
+            )
+        }
+    )
+
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["count"] == 3
+    assert body["results"][0]["current_hour_cost"] == pytest.approx(10.0, abs=1e-6)
+    assert body["results"][0]["predicted_next_hour_cost"] == pytest.approx(10.0, abs=1e-6)
+    assert body["results"][1]["predicted_next_hour_cost"] == pytest.approx(20.5, abs=1e-6)
+    assert body["results"][2]["predicted_next_hour_cost"] == pytest.approx(0.0, abs=1e-6)

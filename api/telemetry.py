@@ -1,6 +1,5 @@
-# ============================================================
 # FINOPS TELEMETRY FORECASTING API V2
-# ============================================================
+
 
 from datetime import datetime
 from typing import Literal
