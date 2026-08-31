@@ -120,15 +120,26 @@ promotion do not run inside the FastAPI request process.
 
 ```text
 api/
+├── __init__.py
 ├── main.py
 └── telemetry.py
 
+artifacts/
+└── retraining_jobs/
+
 models/
 └── champion/
-    ├── MLmodel
+    ├── conda.yaml
     ├── deployment_manifest.json
+    ├── input_example.json
+    ├── MLmodel
+    ├── model.skops
+    ├── python_env.yaml
     ├── reference_profile.json
-    └── model.skops
+    ├── registered_model_meta
+    ├── requirements.txt
+    ├── serving_input_example.json
+    └── ...
 
 notebooks/
 ├── 01_focus_eda.ipynb
@@ -138,12 +149,19 @@ notebooks/
 └── 05_fastapi_model_serving.ipynb
 
 src/
+├── billing/
+│   ├── ingestion.py
+│   └── provider_ingestion.py
 ├── monitoring/
+│   ├── __init__.py
+│   ├── anomaly.py
 │   ├── data_quality.py
 │   ├── drift.py
+│   ├── explainability.py
 │   ├── performance.py
 │   └── storage.py
 └── retraining/
+    ├── __init__.py
     ├── candidates.py
     ├── contract.py
     ├── dataset.py
@@ -158,11 +176,36 @@ src/
     ├── scheduler.py
     └── trigger.py
 
+streamlit_app.py
+
 tests/
+├── test_api.py
+├── test_api_raw_hourly_input.py
+├── test_billing_ingestion.py
+├── test_billing_provider_ingestion.py
+├── test_drift.py
+├── test_monitoring_anomaly.py
+├── test_monitoring_explainability.py
+├── test_retraining_batch_two.py
+├── test_retraining_candidates.py
+├── test_retraining_dataset.py
+├── test_retraining_evaluation.py
+├── test_retraining_job.py
+├── test_retraining_pipeline.py
+├── test_retraining_registry.py
+├── test_retraining_runner.py
+├── test_retraining_trigger.py
+├── test_telemetry_api.py
+└── ...
+
+.env
+.env.example
 Dockerfile
 docker-compose.yml
+LICENSE
+README.md
 requirements.txt
-```
+
 
 ## Local setup
 
