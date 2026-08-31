@@ -22,6 +22,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from api.telemetry import (
     telemetry_router
 )
+from src.monitoring.anomaly import detect_anomalies
 from src.monitoring.data_quality import (
     validate_input_features
 )
@@ -29,6 +30,7 @@ from src.monitoring.drift import (
     calculate_profile_drift_report,
     load_reference_profile
 )
+from src.monitoring.explainability import explain_model
 from src.monitoring.performance import (
     calculate_performance_metrics
 )
@@ -388,6 +390,59 @@ class RetrainingStatusResponse(BaseModel):
     drift_report: DriftResponse
 
     performance_report: PerformanceResponse
+
+
+class AnomalyRequest(BaseModel):
+
+    values: list[float] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Observed time-series values to scan for a sudden spike."
+        )
+    )
+
+
+class AnomalyResponse(BaseModel):
+
+    flagged: bool
+
+    severity: Literal[
+        "none",
+        "normal",
+        "moderate",
+        "high",
+        "critical"
+    ]
+
+    score: float
+
+    max_value: Optional[float]
+
+    mean: Optional[float]
+
+    std: Optional[float]
+
+
+class ExplainabilityRequest(BaseModel):
+
+    model_summary: dict
+
+    feature_matrix: list[list[float]] = Field(
+        ...,
+        description=(
+            "2D array of feature values to summarize with explanations."
+        )
+    )
+
+
+class ExplainabilityResponse(BaseModel):
+
+    supported: bool
+
+    reason: str
+
+    top_features: list[dict]
 
 
 # ============================================================
@@ -1206,6 +1261,51 @@ def retraining_status(
                 "Retraining status could not "
                 "be evaluated."
             )
+        ) from error
+
+
+# ============================================================
+# MONITORING UTILITY ENDPOINTS
+# ============================================================
+
+@app.post(
+    "/monitoring/anomaly",
+    response_model=AnomalyResponse
+)
+def monitoring_anomaly(
+    request: AnomalyRequest
+):
+    """Detect whether a cost series contains an anomalous spike."""
+    try:
+        result = detect_anomalies(request.values)
+        return AnomalyResponse(**result)
+    except Exception as error:
+        logger.exception("Anomaly detection failed.")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Anomaly detection failed: {error}"
+        ) from error
+
+
+@app.post(
+    "/monitoring/explainability",
+    response_model=ExplainabilityResponse
+)
+def monitoring_explainability(
+    request: ExplainabilityRequest
+):
+    """Return a lightweight explanation payload for a model summary."""
+    try:
+        result = explain_model(
+            model_summary=request.model_summary,
+            feature_matrix=request.feature_matrix,
+        )
+        return ExplainabilityResponse(**result)
+    except Exception as error:
+        logger.exception("Model explainability failed.")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Model explainability failed: {error}"
         ) from error
 
 

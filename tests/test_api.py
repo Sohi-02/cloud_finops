@@ -449,6 +449,53 @@ def test_retraining_status_waits_for_data(
 
 
 # ============================================================
+# MONITORING UTILITY ENDPOINTS
+# ============================================================
+
+
+def test_anomaly_endpoint(client):
+
+    response = client.post(
+        "/monitoring/anomaly",
+        json={
+            "values": [
+                100.0,
+                101.0,
+                102.0,
+                105.0,
+                99.0,
+                600.0,
+            ]
+        }
+    )
+
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["flagged"] is True
+    assert body["severity"] in {"moderate", "high", "critical"}
+
+
+def test_explainability_endpoint(client):
+
+    response = client.post(
+        "/monitoring/explainability",
+        json={
+            "model_summary": {
+                "model_type": "persistence_baseline"
+            },
+            "feature_matrix": [[1.0], [2.0]]
+        }
+    )
+
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["supported"] is False
+    assert "Persistence baseline" in body["reason"]
+
+
+# ============================================================
 # CSV BATCH PREDICTION
 # ============================================================
 
